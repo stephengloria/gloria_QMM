@@ -1,0 +1,236 @@
+---
+title: "Assignment_3 QMM"
+author: "Gloria Stephen"
+date: "2022-10-18"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+ 
+Transportation Problem : 
+
+```{r}
+tab <- matrix(c(22,14,30,600,100,
+                16,20,24,625,120,
+                80,60,70,"-","-") , ncol=5 , byrow=TRUE)
+
+colnames(tab) <- c("Warehouse1","Warehouse2","Warehouse3","Prod cost","Prod Capacity") 
+row.names(tab) <- c("Plant A","Plant B","Demand")
+tab <- as.table(tab)
+tab
+```
+transportation problem can be formoulated as  
+
+
+  $$\text{Min} \hspace{.2cm} TC = 622 X_{11} +614 X_{12} +630 X_{13}X+641 X_{21}+ 645X_{22}+649X_{23}$$ 
+ 
+
+/text{subject to}
+
+#Production Capacity constraints 
+Production plant A :
+$$ X_{11} +X_{12}+X_{13} \le 100 $$
+Production Plant B :
+$$ X_{21} +X_{22}+X_{23} \le 120 $$
+
+
+#Demand Constraints 
+
+Demand Warehouse 1 :
+$$ X_{11} + X_{21} \ge 80 $$
+Demand Warehouse 2 :
+$$ X_{12} + X_{22} \ge 60 $$
+Demand Warehouse 3 :
+$$ X_{13} + X_{23} \ge 70 $$
+$$ X_{14} + X_{24} \ge 10 $$
+Non-negativity of the variables
+
+$$ X_{ij} \ge 0 $$
+Where 
+
+$$ i = 1,2,3 $$
+And 
+
+$$ j = 1,2,3 $$
+Since Demand not equal to supply so it is unbalanced one we have created the dummy row as warehouse_4
+
+
+```{r}
+library(lpSolveAPI)
+library(lpSolve)
+#the cost matrix
+Transport_cost <- matrix(c(622,614,630,0,
+                           641,645,649,0) , ncol=4 , byrow=TRUE)
+#defining rows and columns 
+colnames(Transport_cost) <- c("Warehouse_1","Warehouse_2","Warehouse_3","Dummy")
+rownames(Transport_cost) <- c("Plant_A", "Plant_B")
+Transport_cost
+
+
+```
+```{r}
+#constraint signs and right-hand sides(Production side)
+row.signs <- rep("<=",2)
+row.rhs <- c(100,120)
+
+#Demand side constraints#
+col.signs <- rep(">=",4)
+col.rhs <- c(80,60,70,10)
+
+#solving the model
+lptrans <- lp.transport(Transport_cost,"min",row.signs,row.rhs,col.signs,col.rhs)
+
+lptrans$solution
+```
+When solved the transportation problem, the values of the variables as
+$$x_{12}= 60$$
+$$x_{13}= 40$$
+$$x_{21}= 80$$
+$$x_{23}= 30$$
+$$x_{24}= 10$$
+in Otherwords
+
+80 AEDs in Plant 2 - Warehouse_1 
+60 AEDs in Plant 1 - Warehouse_2 
+40 AEDs in Plant 1 - Warehouse_3
+30 AEDs in Plant 2 - Warehouse_3 
+This is the production in each plant and distribution to the three wholesaler warehouses to minimize the overall cost of production as well as shipping.
+
+```{r}
+lptrans$objval
+```
+the minimum combined cost of production and shipping founded for the optimal solution is 132790
+
+
+2. Formulation of the dual of the transportation problem
+
+As we know the primal was to minimize the transportation cost the dual of it would be to maximize the value
+added(VA). 
+K and L will be the variables for the dual respectively
+
+```{r}
+cost_2 <- matrix(c(622,614,630,100,"k1",
+641,645,649,120,"k2",
+80,60,70,220,"-",
+"l1","l2","l3","-","-"),ncol = 5,nrow = 4,byrow = TRUE)
+colnames(cost_2) <- c("Warehouse_1", "Warehouse_2","Warehouse_3","Production Capacity","Supply(Dual)")
+rownames(cost_2) <- c("Plant_A","Plant_B","Demand","Demand(Dual)")
+cost_2
+```
+
+ 
+$$  \text{Max} \hspace{.2cm} Z = 100 K_{1} + 120 K_{2} +80 L_{1} + 60 L_{2} + 70 L_{3}$$
+
+
+Subject to the following constraints
+
+$$   K_{1} + L_{1} \le 622 $$ 
+$$  K_{1} + L_{2} \le 614 $$ 
+$$  K_{1} + L_{3} \le 630 $$ 
+$$  K_{2} + L_{1} \le 641 $$ 
+
+$$  K_{2} + L_{2} \le 645 $$ 
+$$  K_{2} + L_{3} \le 649 $$ 
+Where
+K1 = Warehouse_1
+
+K2 = Warehouse_2
+
+L1 = Warehouse_3
+
+L2 = Plant_1
+
+L3 = Plant_2
+```{r}
+#The Objective function
+f.obj <- c(100,120,80,60,70)
+
+
+#The tranposed from the constraints matrix in the primal is
+f.con <- matrix(c(1,0,1,0,0,
+1,0,0,1,0,
+1,0,0,0,1,
+0,1,1,0,0,
+0,1,0,1,0,
+0,1,0,0,1), nrow = 6, byrow = TRUE)
+f.dir <- c("<=",
+"<=",
+"<=",
+"<=",
+"<=",
+"<=")
+f.rhs <- c(622,614,630,641,645,649)
+lp("max",f.obj,f.con,f.dir,f.rhs)
+
+lp("max",f.obj,f.con,f.dir,f.rhs)$solution
+
+```
+So Z=139,120 dollars and variables are: $$ U_{1} = 614 $$which represents Plant A
+$$ M_{2} = 633 $$  represents Plant B 
+$$ N_{1} = 8 $$   represents Warehouse 1
+$$ N_{3} = 16 $$  represents Warehouse 3
+
+
+3)The Economic Interpretation of the dual
+
+The maximum combined shipping and production costs will be 139,120 dollars based on the given information and constraints.
+There is a minimum Z=132790 (Primal) and maximum Z=139120 (Dual).We observed that we should not ship from Plant(A/B) to all three warehouses at the same time.Instead- 
+
+
+$$60 x_{12}$$ which is 60 Units from Plant A to Warehouse 2.
+
+$$40 x_{13}$$ which is 40 Units from Plant A to Warehouse 3.
+
+$$80 x_{21}$$which is 80 Units from Plant B to Warehouse 1.
+
+$$30 x_{23}$$ which is 30 Units from Plant B to Warehouse 3.
+
+We will Maximize the profit from each distribution to the respective capacity.
+
+We have the following:
+$$  K_{1} ^0 - L_{1} ^0 \le 622$$ then we subtract $$ K_{1} ^0 $$ to the other side to get  $$ K_{1} ^0\le 622 - L_{1} ^0 $$
+To compute it would be $614 <= (-8+622) which is correct. continuing to evaluate these equations:
+$$  K_{1}\le 622 - L_{1} => 614\le622 - 8 = 614=>correct$$
+$$  K_{1}\le 614 - L_{2} => 614\le614 - 0 = 614=>correct$$
+$$  K_{1}\le 630 - L_{3} => 614\le630 - 16 = 614=>correct$$
+$$  K_{2}\le 641 - L_{1} => 633\le614 - 8 = 633=>correct$$
+$$  K_{2}\le 645 - L_{2} => 633\le645 - 0 = 645=> Incorrect$$
+$$  K_{2}\le 649 - L_{3} => 633\le649 - 16 = 633=>correct$$
+Learning from the duality and sensitivity, we test the shadow price by updating each of the columns.In our linear programming transportation problem, we change 100 to 101 and 120 to 121.Here we can see it R.
+```{r}
+row.rhs1 <- c(101,120)
+row.signs1 <- rep("<=",2)
+col.rhs1 <- c(80,60,70,10)
+col.signs1 <- rep(">=",4)
+row.rhs2 <- c(100,121)
+row.signs2 <- rep("<=",2)
+col.rhs2 <- c(80,60,70,10)
+col.signs2 <- rep(">=",4)
+
+lp.transport(Transport_cost,"min",row.signs,row.rhs,col.signs,col.rhs)
+
+lp.transport(Transport_cost,"min",row.signs1,row.rhs1,col.signs1,col.rhs1)
+
+lp.transport(Transport_cost,"min",row.signs2,row.rhs2,col.signs2,col.rhs2)
+
+```
+
+As the minimum of this function the number goes down by 19 indicates the shadow price is 19 so adding 1 to every plant is required. Plant B does have a shadow price
+
+From the dual variable $$ L_{2}$$ where Marginal Revenue <= Marginal Cost. The equation was $$  K_{2}\le 645 - L_{2} => 633\le645 - 0 = 645=> Incorrect$$ and this was found by using $$  K_{1} ^0 - L_{1} ^0 \le 622 $$ then we subtract $$  L_{1} ^0 $$ to the other side to get  $$ K_{1} ^0\le 622 - L_{1} ^0 $$
+```{r}
+lp("max", f.obj,f.con, f.dir,f.rhs)$solution
+```
+ $$n_{2}=0$$ .
+
+The interpretation from above:
+from the primal:
+ $$60x_{12}$$ is 60 Units from Plant A to Warehouse 2.
+ $$40x_{13}$$ is 40 Units from Plant A to Warehouse 3.
+ $$80x_{21}$$ is 80 Units from Plant B to Warehouse 1.
+ $$30x_{23}$$ is 60 Units from Plant B to Warehouse 3.
+ 
+from the dual
+
+Our goal is to get MR = MC.In five of the six cases, MR <= MC. Only Plant B to Warehouse 2 fails to satisfy this requirement.From the primal, we can see that no AED devices will be shipped there.
