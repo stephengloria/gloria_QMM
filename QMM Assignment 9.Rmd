@@ -1,0 +1,61 @@
+---
+title: "QMM Assignment_9"
+author: "Gloria Stephen"
+date: "2022-11-07"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+
+```{r}
+library(lpSolve)
+library(lpSolveAPI)
+```
+#Printing the model after loading the LP file from the current path.
+#Y1p and Y1m are defined as the amounts over and below the employment level goal, respectively, if any.
+#Defining y2p and y2m similarly for the objective of earnings the following year.
+#Define x1, x2, and x3 as the corresponding production rates for Products 1, 2, and 3.
+#Additionally, P can be expressed in terms of x1, x2, and x3, as well as the objective function, y1p, y1m, y2p, and y2m
+
+```{r}
+emaximum_rd <- read.lp("emaximum.lp")
+print(emaximum_rd)
+```
+#The impact of each new product is depicted in the following table 
+```{r}
+emaximum_rd <- matrix(c("Total Profit", "Employment Level", "Earnings Next Year",
+                       20,6,8,
+                       15,4,7,
+                       25,5,5,
+                       "Maximize","=50",">=75",
+                       "Millions of Dollars", "Hundreds of Employees", "Millions of Dollars"), ncol=6, byrow = F)
+colnames(emaximum_rd) <- c("Factor", "Product1", "Product2", "Product3", "Goal", "Units")
+as.table(emaximum_rd)
+```
+
+#Obtaining the objective and variable values 
+```{r}
+solve(emaximum_rd)
+```
+
+```{r}
+get.objective(emaximum_rd)
+```
+
+```{r}
+get.variables(emaximum_rd)
+```
+
+
+#1. Expressing  y1+ and y1-; y2+ and y2-; P using x1, x2, x3
+
+$$ 50 = y_1^+ - y_1^- - 6 x1 - 4 x2 - 5 x3 ;$$
+$$ 75 = y_2^+ - y_2^- - 8 x1 - 7 x2 - 5 x3;$$
+$$P = 20 x_1 + 15 x_2 + 25 x_3;$$
+
+#2. Expressing the management objective function
+
+$$Max \hspace{.2cm}Z = 20 x_1 + 15 x_2 + 25 x_3 - 6 y_1^+ - 6 y_1^- - 3 y_2^-$$
+               
